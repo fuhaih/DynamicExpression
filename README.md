@@ -8,14 +8,14 @@
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 var func = expressionCompiler.Compile("1+2");
-var result = func.DynamicInvoke(3);
+var result = func.DynamicInvoke();
 ```
 >比较
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 var func = expressionCompiler.Compile("1<2");
-var result = func.DynamicInvoke(3);
+var result = func.DynamicInvoke();
 ```
 
 >带参
