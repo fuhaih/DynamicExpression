@@ -253,6 +253,17 @@ namespace DynamicExpression
         }
 
         /// <summary>
+        /// 配置表达式参数
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        public void SetParameter(Type type, string name)
+        {
+            ParameterExpression input = Expression.Parameter(type, name);
+            Parameters.Add(name, input);
+        }
+
+        /// <summary>
         /// 配置类型关键字，可以直接使用类型关键字来访问
         /// </summary>
         /// <param name="name"></param>
