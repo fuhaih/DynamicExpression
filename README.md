@@ -31,9 +31,15 @@ var result = func.DynamicInvoke(3);
 
 * Block块代码
 
+* 赋值操作 = 
+
+* && || & | ^ ! 操作符操作
+
 * this[] 操作，用在数组上
 
 * 完善preType
+
+* 浮点数写法 12d,12m,12f
 
 * 静态方法调用(已支持，但是只能调用System.Runtime程序集内的类型，类型相关的操作需要处理程序集加载问题)
 
