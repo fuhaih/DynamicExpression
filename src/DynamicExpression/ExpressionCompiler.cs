@@ -31,6 +31,18 @@ namespace DynamicExpression
         };
 
         Stack<Expression> Expressions = new Stack<Expression>();
+
+        //public Type GetType(string name)
+        //{
+
+            
+        //}
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)
         {
             Visit(node.Left);
@@ -203,28 +215,120 @@ namespace DynamicExpression
             switch (node.Kind())
             {
                 case SyntaxKind.IdentifierName:
-                    if (Parameters.TryGetValue(name, out var parameter))
-                    {
-                        Expressions.Push(parameter);
-                    }
-                    else if (PredefinedTypes.TryGetValue(name, out var predefinedType))
-                    {
-                        Expressions.Push(new StaticMemberExpression(predefinedType));
-                    }
-                    else
-                    {
-                        //Assembly assembly = Assembly.Load("System.Runtime");
-                        Assembly assembly = typeof(DateTime).Assembly;
-                        Type type = assembly.GetTypes().Where(m => m.Name == name).FirstOrDefault();
-                        if (type == null)
-                        {
-                            throw new Exception($"找不到成员{name}");
-                        }
-                        Expressions.Push(new StaticMemberExpression(type));
-                    }
+                    VisitName(node.Identifier);
                     break;
 
             }
+            return node;
+        }
+
+        /// <summary>
+        /// 访问名称，获取变量、类等
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public SyntaxToken VisitName(SyntaxToken token)
+        {
+            string name = token.ValueText;
+            if (string.IsNullOrWhiteSpace(name)) return token;
+            if (Parameters.TryGetValue(name, out var parameter))
+            {
+                Expressions.Push(parameter);
+            }
+            else if (PredefinedTypes.TryGetValue(name, out var predefinedType))
+            {
+                Expressions.Push(new StaticMemberExpression(predefinedType));
+            }
+            else
+            {
+                //Assembly assembly = Assembly.Load("System.Runtime");
+                Assembly assembly = typeof(DateTime).Assembly;
+                Type type = assembly.GetTypes().Where(m => m.Name == name).FirstOrDefault();
+                if (type == null)
+                {
+                    throw new Exception($"找不到成员{name}");
+                }
+                Expressions.Push(new StaticMemberExpression(type));
+            }
+            return token;
+        }
+
+        /// <summary>
+        /// 指针类型
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitPointerType(PointerTypeSyntax node)
+        {
+            Visit(node.ElementType);
+            return node;
+        }
+
+        /**
+         * 带参的乘法 value1%value2 会分析为PointerTypeSyntax
+         * 
+         * c#中只能在安全模式中使用指针，所以直接把他处理回乘法，暂不考虑在动态表达式中允许指针的使用
+         * 
+         * 也可以使用SyntaxFactory.ParseExpression来解析，这样解析出来是乘法操作，但是该方式没办法解析块代码{},可以解析()=>{}这样的块代码
+         */
+
+
+        /// <summary>
+        /// 声明
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public override SyntaxNode VisitVariableDeclaration(VariableDeclarationSyntax node)
+        {
+            switch (node.Type.Kind())
+            {
+                case SyntaxKind.PointerType:
+                    {
+                        Visit(node.Type);
+                        var left = Expressions.Pop();
+                        var variable = node.Variables.FirstOrDefault();
+                        VisitName(variable.Identifier);
+                        var right = Expressions.Pop();
+                        Expressions.Push(Expression.Multiply(left,right));
+                    }
+                    break;
+                default: throw new Exception("暂不支持");
+            }
+            return node;
+        }
+
+        /// <summary>
+        /// 代码块{}
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitBlock(BlockSyntax node)
+        {
+            List<Expression> expressions = new List<Expression>();
+
+            foreach (var item in node.Statements)
+            {
+                Visit(item);
+                expressions.Add(Expressions.Pop());
+            }
+            Expressions.Push(Expression.Block(expressions));
+            return node;
+        }
+
+        /// <summary>
+        /// 赋值
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitAssignmentExpression(AssignmentExpressionSyntax node)
+        {
+            Visit(node.Left);
+            var left = Expressions.Pop();
+            Visit(node.Right);
+            var right = Expressions.Pop();
+            Expressions.Push(Expression.Assign(left, right));
             return node;
         }
 
@@ -235,10 +339,11 @@ namespace DynamicExpression
         /// <returns></returns>
         public Delegate Compile(string pattern)
         {
-            ExpressionSyntax expressionSyntax = SyntaxFactory.ParseExpression(pattern);
+            var expressionSyntax = SyntaxFactory.ParseStatement(pattern);
             Visit(expressionSyntax);
             Expression expression = Expressions.Pop();
             return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
+
         }
 
         /// <summary>
@@ -269,7 +374,7 @@ namespace DynamicExpression
         /// <param name="name"></param>
         public void SetPredefinedType<T>(string name)
         {
-            SetPredefinedType(name, typeof(T));
+            SetPredefinedType(typeof(T), name);
         }
 
         /// <summary>
@@ -277,7 +382,7 @@ namespace DynamicExpression
         /// </summary>
         /// <param name="name"></param>
         /// <param name="type"></param>
-        public void SetPredefinedType(string name, Type type)
+        public void SetPredefinedType(Type type,string name)
         {
             PredefinedTypes.Add(name, type);
         }
