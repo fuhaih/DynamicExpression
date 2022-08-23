@@ -19,6 +19,7 @@ namespace DynamicExpression.Test
         [TestCase("2-2*2",-2)]
         [TestCase("(2-2)*2",0)]
         [TestCase("(34-8)-(12-2)*2",6)]
+        [TestCase("(34-8)-(12-2)*2 == 6",true)]
         public void Binary_Priority(string expression,object result)
         {
             ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -115,6 +116,7 @@ namespace DynamicExpression.Test
         /// <param name="result"></param>
         [TestCase("value1/value2", 14, 0, 0)]
         [TestCase("value1%value2", 14, 0, 0)]
+
         public void Binary_DivieZeroExpression(string expression, object value1, object value2, object result)
         {
             var exception = Assert.Throws<TargetInvocationException>(() => {
@@ -128,6 +130,12 @@ namespace DynamicExpression.Test
             Assert.IsInstanceOf<DivideByZeroException>(exception.InnerException);
         }
 
+        /// <summary>
+        /// 取余操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
         [TestCase(14, 2, 0)]
         [TestCase(14, 3, 2)]
         [TestCase(0, 3, 0)]
@@ -143,17 +151,130 @@ namespace DynamicExpression.Test
         }
 
         /// <summary>
+        /// 等号操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
+        [TestCase(14, 2, false)]
+        [TestCase(14, 14, true)]
+        [TestCase("123", "3456", false)]
+        [TestCase("test", "test", true)]
+        public void Binary_EqualsExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1==value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        /// <summary>
+        /// 小于号操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
+        [TestCase(14, 2, false)]
+        [TestCase(14, 14, false)]
+        [TestCase(2, 14, true)]
+        [TestCase(-2, 14, true)]
+        [TestCase(-2, -14, false)]
+        public void Binary_LessThanExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1<value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        /// <summary>
+        /// 小于等于操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
+        [TestCase(14, 2, false)]
+        [TestCase(14, 14, true)]
+        [TestCase(2, 14, true)]
+        [TestCase(-2, 14, true)]
+        [TestCase(-2, -14, false)]
+        [TestCase(-14, -14, true)]
+        public void Binary_LessThanOrEqualExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1<=value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+
+        }
+
+        /// <summary>
+        /// 大于号操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
+        [TestCase(14, 2, true)]
+        [TestCase(14, 14, false)]
+        [TestCase(2, 14, false)]
+        [TestCase(-2, 14, false)]
+        [TestCase(-2, -14, true)]
+        [TestCase(-14, -14, false)]
+        public void Binary_GreaterThanExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1>value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        /// <summary>
+        /// 大于等于操作
+        /// </summary>
+        /// <param name="value1"></param>
+        /// <param name="value2"></param>
+        /// <param name="result"></param>
+        [TestCase(14, 2, true)]
+        [TestCase(14, 14, true)]
+        [TestCase(2, 14, false)]
+        [TestCase(-2, 14, false)]
+        [TestCase(-2, -14, true)]
+        [TestCase(-14, -14, true)]
+        public void Binary_GreaterThanOrEqualExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1>=value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        /// <summary>
         /// 字符串不支持的表达式操作
         /// </summary>
         /// <param name="expression"></param>
         /// <param name="value1"></param>
         /// <param name="value2"></param>
         /// <param name="result"></param>
+        [TestCase("value1>value2", "1222", "22", false)]
+        [TestCase("value1>=value2", "1222", "22", false)]
+        [TestCase("value1<value2", "1222", "22", false)]
+        [TestCase("value1<=value2", "1222", "22", false)]
         [TestCase("value1-value2", "1222", "22", "1222")]
         [TestCase("value1*value2", "1222", "22", "1222")]
         [TestCase("value1/value2", "1222", "22", "1222")]
         [TestCase("value1%value2", "1222", "22", "1222")]
-        public void Binary_StringInvalidOperation(string expression,string value1, string value2, string result)
+        
+        public void Binary_StringInvalidOperation(string expression,string value1, string value2, object result)
         {
             Assert.Throws<InvalidOperationException>(() =>
             {
@@ -163,6 +284,7 @@ namespace DynamicExpression.Test
                 var func = expressionCompiler.Compile(expression);
                 var assert = func.DynamicInvoke(value1, value2);
             });
+
         }
 
     }
