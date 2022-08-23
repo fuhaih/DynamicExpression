@@ -27,13 +27,20 @@ var func = expressionCompiler.Compile("value+2");
 var result = func.DynamicInvoke(3);
 ```
 
+>代码块
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value");
+var func = expressionCompiler.Compile("{value = value + 2;return value;}");
+var result = func.DynamicInvoke(3);
+```
+
 ## 计划列表
 
-* Block块代码
-
-* 赋值操作 = 
-
 * && || & | ^ ! 操作符操作
+
+* 变量定义 这个也会涉及到程序集的加载
 
 * this[] 操作，用在数组上
 
