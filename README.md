@@ -26,3 +26,17 @@ expressionCompiler.SetParameter<int>("value");
 var func = expressionCompiler.Compile("value+2");
 var result = func.DynamicInvoke(3);
 ```
+
+## 计划列表
+
+* Block块代码
+
+* this[] 操作，用在数组上
+
+* 完善preType
+
+* 静态方法调用(已支持，但是只能调用System.Runtime程序集内的类型，类型相关的操作需要处理程序集加载问题)
+
+* new(延后，类型相关需要处理程序集)
+
+* 类型强制转换(延后，类型相关需要处理程序集)
