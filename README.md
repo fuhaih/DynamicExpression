@@ -1,6 +1,24 @@
 # DynamicExpression
 动态表达式，dotnet版本eval
 
+目前还未成熟，正式项目中慎用。
+
+悄咪咪的告诉你，`DataTable`中也有计算表达式的功能
+
+```csharp
+var value = new DataTable().Compute("1+2",null);//3
+```
+
+回到我的动态表达式，是使用Roslyn解析表达式字符串，构建为表达式
+
+## 依赖
+
+是用的dotnet的Roslyn编译器，需要引用以下包
+
+```
+Microsoft.CodeAnalysis.CSharp
+```
+
 ## 调用例子
 
 
@@ -36,7 +54,11 @@ var func = expressionCompiler.Compile("{value = value + 2;return value;}");
 var result = func.DynamicInvoke(3);
 ```
 
-##表达式合并
+# 表达式合并
+
+## 调用例子
+
+>ef中操作
 
 ```csharp
 string connectString = "Data Source=.;Initial Catalog=RportTest;Integrated Security=True";
@@ -60,6 +82,20 @@ using (TestContext ctx = new TestContext(optionsBuilder.Options))
     string orSql = orQuery.ToQueryString();
     var orResult = orQuery.ToList();
 }
+```
+
+>多个参数表达式
+
+多个表达式中的参数名不一致也没关系，最终会用第一个表达式的参数来代替。
+
+```csharp
+Expression<Func<int,int, bool>> epxr1 = (value1,value2)=>value1+value2==4;
+Expression<Func<int, int, bool>> epxr2 = (value3, value4) => value3 - value4 == 0;
+var epxr3 = new List<Expression<Func<int,int, bool>>>() { epxr1, epxr2 };
+var andPredicate = epxr3.AndAlso();
+Func<int, int, bool> func = andPredicate.Compile();//(value1,value2)=>(value1 + value2 == 4) AndAlso (value1 - value2 == 0)
+bool result1 = func(2, 2);//true
+bool result2 = func(1, 3);//flase
 ```
 
 ## 计划列表
