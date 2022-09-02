@@ -295,6 +295,13 @@ namespace DynamicExpression
                     }
                     break;
                 default: throw new Exception("暂不支持");
+                //default:
+                //    {
+                //        Visit(node.Type);
+                //        var left = Expressions.Pop();
+
+                //    }
+                //    break;
             }
             return node;
         }
@@ -333,13 +340,27 @@ namespace DynamicExpression
         }
 
         /// <summary>
-        /// 编译表达式
+        /// 编译表达式，如果是简单的表达式，推荐使用<see cref="CompileSimpleExpression"/> 方法
         /// </summary>
         /// <param name="pattern"></param>
         /// <returns></returns>
         public Delegate Compile(string pattern)
         {
             var expressionSyntax = SyntaxFactory.ParseStatement(pattern);
+            Visit(expressionSyntax);
+            Expression expression = Expressions.Pop();
+            return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
+
+        }
+
+        /// <summary>
+        /// 编译简单的表达式，也就是一条语句的表达式
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
+        public Delegate CompileSimpleExpression(string pattern)
+        {
+            var expressionSyntax = SyntaxFactory.ParseExpression(pattern);
             Visit(expressionSyntax);
             Expression expression = Expressions.Pop();
             return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
