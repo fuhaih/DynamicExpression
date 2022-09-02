@@ -12,19 +12,19 @@ namespace DynamicExpression.Expressions
     /// </summary>
     public class ReplaceExpressionVisitor : ExpressionVisitor
     {
-        private readonly Expression _oldValue;
-        private readonly Expression _newValue;
+        private Dictionary<Expression, Expression> _parameters;
 
-        public ReplaceExpressionVisitor(Expression oldValue, Expression newValue)
+        public ReplaceExpressionVisitor(Dictionary<Expression,Expression> parameters)
         {
-            _oldValue = oldValue;
-            _newValue = newValue;
+            _parameters = parameters;
         }
 
-        public override Expression Visit(Expression node)
+        protected override Expression VisitParameter(ParameterExpression node)
         {
-            if (node == _oldValue)
+            if (_parameters.TryGetValue(node, out Expression _newValue))
+            {
                 return _newValue;
+            }
             return base.Visit(node);
         }
     }
