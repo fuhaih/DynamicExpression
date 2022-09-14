@@ -17,19 +17,44 @@ namespace DynamicExpression
     /// </summary>
     public class ExpressionCompiler : CSharpSyntaxRewriter
     {
+        /// <summary>
+        /// 参数
+        /// </summary>
         private readonly Dictionary<string, ParameterExpression> Parameters = new Dictionary<string, ParameterExpression>();
 
+        /// <summary>
+        /// 变量
+        /// </summary>
+        private readonly Dictionary<string, ParameterExpression> Variables = new Dictionary<string, ParameterExpression>();
+
+        /// <summary>
+        /// 预设类型<!--https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types-->
+        /// </summary>
         private readonly Dictionary<string, Type> PredefinedTypes = new Dictionary<string, Type>()
         {
-            {"string",typeof(string) },
-            {"int",typeof(int) },
-            {"long",typeof(long) },
-            {"float",typeof(float) },
-            {"double",typeof(double) },
-            {"decimal",typeof(decimal) },
+            {"bool",typeof(bool) },
             {"byte",typeof(byte) },
+            {"sbyte",typeof(sbyte) },
+            {"char",typeof(char) },
+            {"decimal",typeof(decimal) },
+            {"double",typeof(double) },
+            {"float",typeof(float) },
+            {"int",typeof(int) },
+            {"uint",typeof(uint) },
+            {"nint",typeof(nint) },
+            {"nuint",typeof(nuint) },
+            {"long",typeof(long) },
+            {"ulong",typeof(ulong) },
+            {"short",typeof(short) },
+            {"ushort",typeof(ushort) },
+            {"object",typeof(object) },
+            {"string",typeof(string) },
+            {"dynamic",typeof(object) }
         };
 
+        /// <summary>
+        /// 栈
+        /// </summary>
         Stack<Expression> Expressions = new Stack<Expression>();
 
         //public Type GetType(string name)
@@ -236,6 +261,10 @@ namespace DynamicExpression
             {
                 Expressions.Push(parameter);
             }
+            else if (Variables.TryGetValue(name, out var variable))
+            {
+                Expressions.Push(variable);
+            }
             else if (PredefinedTypes.TryGetValue(name, out var predefinedType))
             {
                 Expressions.Push(new StaticMemberExpression(predefinedType));
@@ -294,7 +323,15 @@ namespace DynamicExpression
                         Expressions.Push(Expression.Multiply(left,right));
                     }
                     break;
-                default: throw new Exception("暂不支持");
+                default:
+                    {
+                        foreach (var item in node.Variables)
+                        {
+                            Visit(node.Type);
+                            Visit(item);
+                        }
+                            
+                    }break;
                 //default:
                 //    {
                 //        Visit(node.Type);
@@ -304,6 +341,37 @@ namespace DynamicExpression
                 //    break;
             }
             return node;
+        }
+
+        /// <summary>
+        /// 声明变量
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitVariableDeclarator(VariableDeclaratorSyntax node)
+        {
+            var type = Expressions.Pop();
+            string name = node.Identifier.ValueText;
+            var left = Expression.Variable(type.Type, name);
+            Variables.Add(name, left);
+
+            if (node.Initializer != null)
+            {
+                Visit(node.Initializer);
+                var right = Expressions.Pop();
+                Expressions.Push(Expression.Assign(left, right));
+            }
+            return node;
+        }
+
+        /// <summary>
+        /// 变量定义
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
+        {
+            return base.VisitLocalDeclarationStatement(node);
         }
 
         /// <summary>
@@ -318,9 +386,12 @@ namespace DynamicExpression
             foreach (var item in node.Statements)
             {
                 Visit(item);
-                expressions.Add(Expressions.Pop());
+                while (Expressions.TryPop(out var expression))
+                {
+                    expressions.Add(expression);
+                }
             }
-            Expressions.Push(Expression.Block(expressions));
+            Expressions.Push(Expression.Block(Variables.Values, expressions));
             return node;
         }
 
