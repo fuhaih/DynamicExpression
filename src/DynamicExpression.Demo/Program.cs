@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace DynamicExpression.Demo
 {
@@ -7,7 +8,7 @@ namespace DynamicExpression.Demo
     {
         static void Main(string[] args)
         {
-            TestExpression1();
+            TestExpression();
             Console.ReadLine();
         }
 
@@ -16,7 +17,7 @@ namespace DynamicExpression.Demo
             Stopwatch stopwatch = Stopwatch.StartNew();
             ExpressionCompiler expressionCompiler = new ExpressionCompiler();
             expressionCompiler.SetParameter<int>("value");
-            var func = expressionCompiler.Compile("{value = value + 2;return value;}");
+            var func = expressionCompiler.Compile("{int value1=1,value2=2; value1 =value1 + value2 + value; return value1;}");
             var result = func.DynamicInvoke(3);
             stopwatch.Stop();
             Console.WriteLine(stopwatch.ElapsedMilliseconds);

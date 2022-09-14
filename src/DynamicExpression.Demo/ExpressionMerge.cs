@@ -13,15 +13,17 @@ namespace DynamicExpression.Demo
         {
             Expression<Func<int,int, bool>> epxr1 = (value1,value2)=>value1+value2==4;
             Expression<Func<int, int, bool>> epxr2 = (value3, value4) => value3 - value4 == 0;
-            var epxr3 = new List<Expression<Func<int,int, bool>>>() { epxr1, epxr2 };
-            var andPredicate = epxr3.AndAlso();
+            Expression<Func<int, int, bool>> epxr3 = (value3, value4) => value3 % value4 == 0;
+            var epxr4 = new List<Expression<Func<int,int, bool>>>() { epxr1, epxr2, epxr3 };
+            var andPredicate = epxr4.AndAlso();
             Func<int, int, bool> func = andPredicate.Compile();
             bool result1 = func(2, 2);
             bool result2 = func(1, 3);
+            bool result3 = func(0, 5);
             var andPredicate2 = epxr1.AndAlso(epxr2);
             Func<int, int, bool> func2 = andPredicate.Compile();
-            bool result3 = func2(2, 2);
-            bool result4 = func2(1, 3);
+            bool result4 = func2(2, 2);
+            bool result5 = func2(1, 3);
         }
         public static void ExpressionOrMerge()
         {
