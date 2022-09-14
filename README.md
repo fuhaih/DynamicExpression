@@ -54,6 +54,25 @@ var func = expressionCompiler.Compile("{value = value + 2;return value;}");
 var result = func.DynamicInvoke(3);
 ```
 
+>代码块内变量定义
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value");
+var func = expressionCompiler.Compile("{int value1 = value+1;value = value1+1;value1 = value; return value1;}");
+var result = func.DynamicInvoke(3);
+//输出5
+```
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value");
+var func = expressionCompiler.Compile("{int value1=1,value2=2; value1 =value1 + value2 + value; return value1;}");
+var result = func.DynamicInvoke(3);
+//输出6
+```
+ 
+**注意**:这个目前不支持自定义类型，在类型名称不重复的情况下可以使用`SetPredefinedType`手动配置自定义类型和名称，就能使用
 # 表达式合并
 
 ## 调用例子
@@ -98,6 +117,8 @@ bool result1 = func(2, 2);//true
 bool result2 = func(1, 3);//flase
 ```
 
+
+
 ## 计划列表
 
 * && || & | ^ ! 操作符操作
@@ -137,3 +158,13 @@ if(!string.IsNullOfEmpty(name))
 多次判断的时候，多次调用Where，相当于多个条件的&&操作。有时候会需要||操作，就不太好弄
 
 这里想重新构造多个Expression，合并生成一个新的Expression来操作
+
+## 一些帮助摸鱼的小想法
+
+* 自动部署程序
+
+某个项目中有很多的第三方dll，每次使用vs远程发布的时候，都需要传输大量文件，比较耗时
+
+想法：在iis服务端进行应用的编译，发布，这个就涉及到从代码库中拉取代码->iis服务器编译->发布
+
+[相关资料](https://www.ecanarys.com/Blogs/ArticleID/409/Deploy-NET-application-on-IIS-using-GitHub-actions)
