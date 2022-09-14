@@ -295,7 +295,7 @@ namespace DynamicExpression
         }
 
         /**
-         * 带参的乘法 value1%value2 会分析为PointerTypeSyntax
+         * 带参的乘法 value1*value2 会分析为PointerTypeSyntax
          * 
          * c#中只能在安全模式中使用指针，所以直接把他处理回乘法，暂不考虑在动态表达式中允许指针的使用
          * 
