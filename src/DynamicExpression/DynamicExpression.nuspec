@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>DynamicExpression.Core</id>
+    <version>1.0.2</version>
+    <title>DynamicExpression.Core</title>
+    <authors>fuhaih</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <!-- <icon>icon.png</icon> -->
+    <projectUrl>https://github.com/fuhaih/DynamicExpression</projectUrl>
+    <description>动态表达式,可以执行表达式字符串，可以合并表达式内容</description>
+    <releaseNotes>发行说明，可以是修改了哪些问题</releaseNotes>
+    <copyright>$copyright$</copyright>
+    <tags>DynamicExpression Expression Lampda Dynamic eval linq</tags>
+    <dependencies>
+	    <group>
+		    <dependency id="Microsoft.CodeAnalysis.CSharp" version="4.2.0" />
+	    </group>
+    </dependencies>
+  </metadata>
+</package>
