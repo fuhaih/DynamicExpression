@@ -19,6 +19,10 @@ var value = new DataTable().Compute("1+2",null);//3
 Microsoft.CodeAnalysis.CSharp
 ```
 
+## 注意
+
+这些例子里有关于类型的操作(创建对象、定义变量、静态方法调用)，都只有预设类型(int,string,double......)能用，其他类型需要在类型名称不重复的情况下，使用`SetPredefinedType`手动配置类型和名称，才能使用
+
 ## 调用例子
 
 
@@ -43,6 +47,29 @@ ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<int>("value");
 var func = expressionCompiler.Compile("value+2");
 var result = func.DynamicInvoke(3);
+```
+
+>方法调用
+
+实例方法
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<string>("value2");
+var func = expressionCompiler.Compile("value1.ToString().Substring(2,2)+value2.Substring(2)");
+var result = func.DynamicInvoke(12345,"67890");
+//34890
+```
+
+静态方法
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<string>("value1");
+expressionCompiler.SetParameter<string>("value2");
+var func = expressionCompiler.Compile("string.Concat(value1, value2)");
+var result = func.DynamicInvoke("12345","67890");
+//1234567890
 ```
 
 >代码块
@@ -71,8 +98,89 @@ var func = expressionCompiler.Compile("{int value1=1,value2=2; value1 =value1 + 
 var result = func.DynamicInvoke(3);
 //输出6
 ```
- 
-**注意**:这个目前不支持自定义类型，在类型名称不重复的情况下可以使用`SetPredefinedType`手动配置自定义类型和名称，就能使用
+
+>其他逻辑运行
+
+&&
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("value1>1&&value2>3");
+var result = func.DynamicInvoke(2,3);
+//false
+```
+||
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("value1>1||value2>3");
+var result = func.DynamicInvoke(2,3);
+//true
+```
+
+!
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("!((value1+value2)>7");
+var result = func.DynamicInvoke(3,4);
+//true
+```
+
+>位运行
+
+^ 
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("value1^value2");
+var result = func.DynamicInvoke(3,4);
+//1
+```
+
+|
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("value1|value2");
+var result = func.DynamicInvoke(6,10);
+//14
+```
+&
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value1");
+expressionCompiler.SetParameter<int>("value2");
+var func = expressionCompiler.Compile("value1&value2");
+var result = func.DynamicInvoke(6,10);
+//2
+```
+
+`>>`
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value");
+var func = expressionCompiler.Compile("value>>2");
+var result = func.DynamicInvoke(14);
+//3
+```
+
+`<<`
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int>("value");
+var func = expressionCompiler.Compile("value<<2");
+var result = func.DynamicInvoke(16);
+//64
+```
+
 # 表达式合并
 
 ## 调用例子
@@ -121,7 +229,7 @@ bool result2 = func(1, 3);//flase
 
 ## 计划列表
 
-* && || & | ^ ! 操作符操作
+* && || & | ^ ! >> <<操作符操作(已完成)
 
 * 变量定义 这个也会涉及到程序集的加载
 
