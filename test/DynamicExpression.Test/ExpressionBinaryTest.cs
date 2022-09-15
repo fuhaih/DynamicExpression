@@ -284,8 +284,65 @@ namespace DynamicExpression.Test
                 var func = expressionCompiler.Compile(expression);
                 var assert = func.DynamicInvoke(value1, value2);
             });
-
         }
+
+        [TestCase("value1>1&&value2>2", 2, 3, true)]
+        [TestCase("value1>1&&value2>3", 2, 3, false)]
+        [TestCase("value1>1&&value2>3||value2==3", 2, 3, true)]
+        [TestCase("value1>1||value2>2", 2, 3, true)]
+        [TestCase("value1>1||value2>3", 2, 3, true)]
+        public void Binary_AndAlsoOrElse(string expression, object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile(expression);
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+
+        #region Î»ÔËËã
+        [TestCase("value1^value2", 2, 3, 1)]
+        [TestCase("value1^value2", 2, 0, 2)]
+        [TestCase("value1^value2", 3, 0, 3)]
+        public void Binary_ExclusiveOr(string expression, object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile(expression);
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        [TestCase("value>>2", 16, 4)]
+        [TestCase("value>>2", 14, 3)]
+        [TestCase("value<<2", 16, 64)]
+        public void Binary_LeftAndRightShift(string expression, object value, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value.GetType(), "value");
+            var func = expressionCompiler.Compile(expression);
+            var assert = func.DynamicInvoke(value);
+            Assert.AreEqual(result, assert);
+        }
+
+        [TestCase("value1&value2", 3, 2, 2)]
+        [TestCase("value1&value2", 6, 10, 2)]
+        [TestCase("value1|value2", 3, 2, 3)]
+        [TestCase("value1|value2", 6, 10, 14)]
+        public void Binary_AndOrOperation(string expression, object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile(expression);
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        #endregion
 
     }
 }

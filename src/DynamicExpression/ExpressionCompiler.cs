@@ -116,6 +116,27 @@ namespace DynamicExpression
                 case SyntaxKind.GreaterThanOrEqualExpression:// >=
                     Expressions.Push(Expression.GreaterThanOrEqual(left, right));
                     break;
+                case SyntaxKind.BitwiseAndExpression:// &
+                    Expressions.Push(Expression.And(left, right));
+                    break;
+                case SyntaxKind.LogicalAndExpression:// &&
+                    Expressions.Push(Expression.AndAlso(left, right));
+                    break;
+                case SyntaxKind.BitwiseOrExpression:// |
+                    Expressions.Push(Expression.Or(left, right));
+                    break;
+                case SyntaxKind.LogicalOrExpression:// ||
+                    Expressions.Push(Expression.OrElse(left, right));
+                    break;
+                case SyntaxKind.ExclusiveOrExpression:// ^
+                    Expressions.Push(Expression.ExclusiveOr(left, right));
+                    break;
+                case SyntaxKind.LeftShiftExpression:// <<
+                    Expressions.Push(Expression.LeftShift(left, right));
+                    break;
+                case SyntaxKind.RightShiftExpression:// >>
+                    Expressions.Push(Expression.RightShift(left, right));
+                    break;
             }
             return node;
         }
@@ -226,6 +247,25 @@ namespace DynamicExpression
             {
                 Expressions.Push(new StaticMemberExpression(type));
             }
+            return node;
+        }
+
+        /// <summary>
+        /// 带前缀的一元运算
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+        {
+            Visit(node.Operand);
+            var expression = Expressions.Pop();
+            switch (node.Kind())
+            {
+                case SyntaxKind.LogicalNotExpression:
+                    Expressions.Push(Expression.Not(expression));
+                    break;
+            }
+
             return node;
         }
 
