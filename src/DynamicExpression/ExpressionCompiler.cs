@@ -1,4 +1,5 @@
 ﻿using DynamicExpression.Expressions;
+using DynamicExpression.Extension;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -435,6 +436,43 @@ namespace DynamicExpression
             return node;
         }
 
+        public override SyntaxNode VisitElementAccessExpression(ElementAccessExpressionSyntax node)
+        {
+            Visit(node.Expression);
+            var item  = Expressions.Pop();
+            List<Expression> paramters = new List<Expression>();
+            foreach (var parameter in node.ArgumentList.Arguments)
+            {
+                Visit(parameter);
+                paramters.Add(Expressions.Pop());
+            }
+            var types = paramters.Select(m => m.Type).ToArray();
+            var indexer = GetIndexer(item, types);
+            Expressions.Push(Expression.MakeIndex(item,indexer, paramters));
+            return node;
+        }
+        
+        /// <summary>
+        /// 获取索引器对应的属性
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public PropertyInfo GetIndexer(Expression expression,Type[] parameters)
+        {
+            var properties = expression.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var property in properties)
+            {
+                ParameterInfo[] parameterInfo = property.GetIndexParameters();
+                Type[] parameterInfoType = parameterInfo.Select(x => x.ParameterType).ToArray();
+                if (parameterInfoType.Length == parameters.Length && parameters.ArrayEquals(parameterInfoType))
+                {
+                    return property;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// 赋值
         /// </summary>
@@ -462,6 +500,19 @@ namespace DynamicExpression
             Expression expression = Expressions.Pop();
             return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
 
+        }
+
+        /// <summary>
+        /// 编译表达式，如果是简单的表达式，推荐使用<see cref="CompileSimpleExpression"/> 方法
+        /// </summary>
+        /// <param name="pattern"></param>
+        /// <returns></returns>
+        public T Compile<T>(string pattern)
+        {
+            var expressionSyntax = SyntaxFactory.ParseStatement(pattern);
+            Visit(expressionSyntax);
+            Expression expression = Expressions.Pop();
+            return Expression.Lambda<T>(expression, Parameters.Values.ToArray()).Compile();
         }
 
         /// <summary>
