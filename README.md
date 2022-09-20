@@ -139,7 +139,7 @@ expressionCompiler.SetParameter<int>("value1");
 expressionCompiler.SetParameter<int>("value2");
 var func = expressionCompiler.Compile("value1^value2");
 var result = func.DynamicInvoke(3,4);
-//1
+//7
 ```
 
 |
@@ -180,6 +180,51 @@ var func = expressionCompiler.Compile("value<<2");
 var result = func.DynamicInvoke(16);
 //64
 ```
+
+>索引操作this[]
+
+数组：
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int[]>("values");
+var func = expressionCompiler.Compile("values[0]");//value[0,0] 多维数组/矩形数组 是在this中有多个参数的
+var result = func.DynamicInvoke(new int[] { 1,2,3});
+//result: 1
+```
+
+字符串
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<string>("values");
+var func = expressionCompiler.Compile("values[0]");
+var result = func.DynamicInvoke("123");
+//result: '1'
+```
+
+自定义类型
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<Test>("values");
+var func = expressionCompiler.Compile("values[0]");
+var result = func.DynamicInvoke(new Test());
+//result: null
+```
+
+多维数组
+
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int[][]>("values");
+var func = expressionCompiler.Compile<Func<int[][], int[]>>("values[1]");//value[0,0] 多维数组/矩形数组 是在this中有多个参数的
+int[][] value = new int[3][];
+value[0] = new int[4] { 1, 2, 3, 4 };
+value[1] = new int[3] { 5, 6, 7 };
+value[2] = new int[3] { 8, 9, 0 };
+var result = func.Invoke(value);
+//result: { 5, 6, 7 }
+```
+
+多维数组作为入参时，需要编译为特定类型的表达式，使用Invoke方法而非DynamicInvoke。
 
 # 表达式合并
 
@@ -229,11 +274,11 @@ bool result2 = func(1, 3);//flase
 
 ## 计划列表
 
-* && || & | ^ ! >> <<操作符操作(已完成)
+* && || & | ^ ! >> <<操作符操作(已支持)
 
-* 变量定义 这个也会涉及到程序集的加载
+* 变量定义 这个也会涉及到程序集的加载(已支持)
 
-* this[] 操作，用在数组上
+* this[] 索引，数组、字符串、自定义类等的索引操作都可(已支持)
 
 * 完善preType
 
