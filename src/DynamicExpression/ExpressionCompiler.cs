@@ -105,6 +105,9 @@ namespace DynamicExpression
                 case SyntaxKind.EqualsExpression:// ==
                     Expressions.Push(Expression.Equal(left, right));
                     break;
+                case SyntaxKind.NotEqualsExpression://!=
+                    Expressions.Push(Expression.NotEqual(left,right));
+                    break;
                 case SyntaxKind.LessThanExpression:// <
                     Expressions.Push(Expression.LessThan(left, right));
                     break;
@@ -138,6 +141,11 @@ namespace DynamicExpression
                 case SyntaxKind.RightShiftExpression:// >>
                     Expressions.Push(Expression.RightShift(left, right));
                     break;
+                case SyntaxKind.CoalesceExpression:// ??
+                    right = Expression.Convert(right, left.Type);
+                    Expressions.Push(Expression.Coalesce(left,right));
+                    break;
+                    
             }
             return node;
         }
@@ -167,31 +175,47 @@ namespace DynamicExpression
                 case SyntaxKind.StringLiteralExpression:
                     Expressions.Push(Expression.Constant(node.Token.Value));
                     break;
+                case SyntaxKind.NullLiteralExpression:
+                    Expressions.Push(Expression.Constant(node.Token.Value));
+                    break;
             }
             return node;
         }
 
         /// <summary>
-        /// 方法
+        /// 方法调用
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
         public override SyntaxNode VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             List<Expression> arguments = new List<Expression>();
-
+            Expression expression = null;
+            string methodName = null;
             foreach (var item in node.ArgumentList.ChildNodes())
             {
                 Visit(item);
                 arguments.Add(Expressions.Pop());
             }
-            var member = (MemberAccessExpressionSyntax)node.Expression;
-            Visit(member.Expression);
-            var expression = Expressions.Pop();
-            string name = member.Name.Identifier.ValueText;
+
+            if (node.Expression is MemberAccessExpressionSyntax)
+            {
+                var member = (MemberAccessExpressionSyntax)node.Expression;
+                Visit(member.Expression);
+                expression = Expressions.Pop();
+                methodName = member.Name.Identifier.ValueText;
+                
+            }
+            else {
+                var member = (MemberBindingExpressionSyntax)node.Expression;
+                //Visit(member.Expression);
+                expression = Expressions.Pop();
+                methodName = member.Name.Identifier.ValueText;
+                
+            }
             //var invocation = Expressions.Pop();
             var argumentTypes = arguments.Select(m => m.Type).ToArray();
-            MethodInfo method = expression.Type.GetMethod(name,
+            MethodInfo method = expression.Type.GetMethod(methodName,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static,
                 null,
                 CallingConventions.Any,
@@ -199,15 +223,26 @@ namespace DynamicExpression
                 null);
             if (method == null)
             {
-                throw new Exception($"找不到成员{name}");
+                throw new Exception($"找不到成员{methodName}");
             }
             Expressions.Push(Expression.Call(expression is StaticMemberExpression ? null : expression, (MethodInfo)method, arguments.ToArray()));
+
             return node;
             //return base.VisitInvocationExpression(node);
         }
 
         /// <summary>
-        /// visit 属性
+        /// 绑定表达式 value?.Value时，就是MemberBindingExpression(.ToString())
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitMemberBindingExpression(MemberBindingExpressionSyntax node)
+        {
+            return base.VisitMemberBindingExpression(node);
+        }
+
+        /// <summary>
+        /// visit 属性(值处理属性，方法会在Invocation中处理)  MemberAccessExpression(value.Value)
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
@@ -262,11 +297,65 @@ namespace DynamicExpression
             var expression = Expressions.Pop();
             switch (node.Kind())
             {
-                case SyntaxKind.LogicalNotExpression:
+                case SyntaxKind.LogicalNotExpression://!value
+                    Expressions.Push(Expression.Not(expression));
+                    break;
+                case SyntaxKind.PreIncrementExpression://++value
+                    Expressions.Push(Expression.PreIncrementAssign(expression));
+                    break;
+                case SyntaxKind.PreDecrementExpression://--value
+                    Expressions.Push(Expression.PreDecrementAssign(expression));
+                    break ;
+                case SyntaxKind.UnaryMinusExpression://-value
+                    Expressions.Push(Expression.Negate(expression));
+                    break;
+                case SyntaxKind.UnaryPlusExpression://+value
+                    Expressions.Push(Expression.UnaryPlus(expression));
+                    break;
+                case SyntaxKind.BitwiseNotExpression://~value
                     Expressions.Push(Expression.Not(expression));
                     break;
             }
 
+            return node;
+        }
+
+        /// <summary>
+        /// 后缀的一元表达式 value++ value--
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
+        {
+            Visit(node.Operand);
+            var expression = Expressions.Pop();
+            switch (node.Kind())
+            {
+                case SyntaxKind.PostIncrementExpression://value++
+                    Expressions.Push(Expression.PostIncrementAssign(expression));
+                    break;
+                case SyntaxKind.PostDecrementExpression://value--
+                    Expressions.Push(Expression.PostDecrementAssign(expression));
+                    break;
+            }
+
+            return node;
+        }
+
+        /// <summary>
+        /// 三元表达式
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitConditionalExpression(ConditionalExpressionSyntax node)
+        {
+            Visit(node.Condition);
+            var condition = Expressions.Pop();
+            Visit(node.WhenFalse);
+            var whenFalse = Expressions.Pop();
+            Visit(node.WhenTrue);
+            var whenTrue = Expressions.Pop();
+            Expressions.Push(Expression.Condition(condition,whenTrue,whenFalse));
             return node;
         }
 
@@ -436,6 +525,11 @@ namespace DynamicExpression
             return node;
         }
 
+        /// <summary>
+        /// 索引器
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
         public override SyntaxNode VisitElementAccessExpression(ElementAccessExpressionSyntax node)
         {
             Visit(node.Expression);
@@ -451,26 +545,48 @@ namespace DynamicExpression
             Expressions.Push(Expression.MakeIndex(item,indexer, paramters));
             return node;
         }
-        
+
         /// <summary>
-        /// 获取索引器对应的属性
+        /// 
         /// </summary>
-        /// <param name="expression"></param>
-        /// <param name="parameters"></param>
+        /// <param name="node"></param>
         /// <returns></returns>
-        public PropertyInfo GetIndexer(Expression expression,Type[] parameters)
+        public override SyntaxNode VisitElementBindingExpression(ElementBindingExpressionSyntax node)
         {
-            var properties = expression.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            foreach (var property in properties)
+            var item = Expressions.Pop();
+            List<Expression> paramters = new List<Expression>();
+            foreach (var parameter in node.ArgumentList.Arguments)
             {
-                ParameterInfo[] parameterInfo = property.GetIndexParameters();
-                Type[] parameterInfoType = parameterInfo.Select(x => x.ParameterType).ToArray();
-                if (parameterInfoType.Length == parameters.Length && parameters.ArrayEquals(parameterInfoType))
-                {
-                    return property;
-                }
+                Visit(parameter);
+                paramters.Add(Expressions.Pop());
             }
-            return null;
+            var types = paramters.Select(m => m.Type).ToArray();
+            var indexer = GetIndexer(item, types);
+            Expressions.Push(Expression.MakeIndex(item, indexer, paramters));
+            return node;
+        }
+
+        /// <summary>
+        /// ?.
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public override SyntaxNode VisitConditionalAccessExpression(ConditionalAccessExpressionSyntax node)
+        {
+            Visit(node.Expression); 
+            var expression = Expressions.Pop();
+            Expressions.Push(expression);
+            Visit(node.WhenNotNull);
+            
+            var whenNotNull = Expressions.Pop();
+            if (whenNotNull.Type.IsValueType)
+            { 
+                whenNotNull = Expression.Convert(whenNotNull, GetNullableType(whenNotNull.Type));
+            }
+            var nullValue = Expression.Constant(null, whenNotNull.Type);
+            var condition = Expression.Equal(expression, Expression.Constant(null));
+            Expressions.Push(Expression.Condition(condition,nullValue,whenNotNull));
+            return node;
         }
 
         /// <summary>
@@ -484,7 +600,49 @@ namespace DynamicExpression
             var left = Expressions.Pop();
             Visit(node.Right);
             var right = Expressions.Pop();
-            Expressions.Push(Expression.Assign(left, right));
+            switch (node.Kind())
+            {
+                case SyntaxKind.SimpleAssignmentExpression:
+                    Expressions.Push(Expression.Assign(left, right));
+                    break;
+                case SyntaxKind.AddAssignmentExpression:
+                    Expressions.Push(Expression.AddAssign(left, right));
+                    break;
+                case SyntaxKind.SubtractAssignmentExpression:
+                    Expressions.Push(Expression.SubtractAssign(left, right));
+                    break;
+                case SyntaxKind.MultiplyAssignmentExpression:
+                    Expressions.Push(Expression.MultiplyAssign(left, right));
+                    break;
+                case SyntaxKind.DivideAssignmentExpression:
+                    Expressions.Push(Expression.DivideAssign(left, right));
+                    break;
+                case SyntaxKind.ModuloAssignmentExpression:
+                    Expressions.Push(Expression.ModuloAssign(left, right));
+                    break;
+                case SyntaxKind.ExclusiveOrAssignmentExpression:
+                    Expressions.Push(Expression.ExclusiveOrAssign(left, right));
+                    break;
+                case SyntaxKind.AndAssignmentExpression://value&=1
+                    Expressions.Push(Expression.AndAssign(left, right));
+                    break;
+                case SyntaxKind.OrAssignmentExpression://value|=1
+                    Expressions.Push(Expression.OrAssign(left, right));
+                    break;
+                //case SyntaxKind.CoalesceAssignmentExpression://好像不支持
+                //    Expressions.Push(Expression.Coalesce(left, right));
+                //    break;
+                case SyntaxKind.LeftShiftAssignmentExpression:
+                    Expressions.Push(Expression.LeftShiftAssign(left, right));
+                    break;
+                case SyntaxKind.RightShiftAssignmentExpression:
+                    Expressions.Push(Expression.RightShiftAssign(left, right));
+                    break;
+                    
+            }
+
+
+
             return node;
         }
 
@@ -499,7 +657,6 @@ namespace DynamicExpression
             Visit(expressionSyntax);
             Expression expression = Expressions.Pop();
             return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
-
         }
 
         /// <summary>
@@ -526,7 +683,6 @@ namespace DynamicExpression
             Visit(expressionSyntax);
             Expression expression = Expressions.Pop();
             return Expression.Lambda(expression, Parameters.Values.ToArray()).Compile();
-
         }
 
         /// <summary>
@@ -568,6 +724,42 @@ namespace DynamicExpression
         public void SetPredefinedType(Type type,string name)
         {
             PredefinedTypes.Add(name, type);
+        }
+
+        /// <summary>
+        /// 获取类型的可空类型
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public Type GetNullableType(Type type)
+        {
+            // Use Nullable.GetUnderlyingType() to remove the Nullable<T> wrapper if type is already nullable.
+            //type = Nullable.GetUnderlyingType(type) ?? type; // avoid type becoming null
+            if (type.IsValueType)
+                return typeof(Nullable<>).MakeGenericType(type);
+            else
+                return type;
+        }
+
+        /// <summary>
+        /// 获取索引器对应的属性
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public PropertyInfo GetIndexer(Expression expression, Type[] parameters)
+        {
+            var properties = expression.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            foreach (var property in properties)
+            {
+                ParameterInfo[] parameterInfo = property.GetIndexParameters();
+                Type[] parameterInfoType = parameterInfo.Select(x => x.ParameterType).ToArray();
+                if (parameterInfoType.Length == parameters.Length && parameters.ArrayEquals(parameterInfoType))
+                {
+                    return property;
+                }
+            }
+            return null;
         }
     }
 }

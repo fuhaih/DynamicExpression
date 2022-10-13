@@ -226,6 +226,44 @@ var result = func.Invoke(value);
 
 多维数组作为入参时，需要编译为特定类型的表达式，使用Invoke方法而非DynamicInvoke。
 
+
+>可空类型处理
+
+可空类型也是需要调用Invoke方法
+
+`??`运算符
+```csharp
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int?>("value1");
+var func = expressionCompiler.Compile<Func<int?,int?>>("value1??0");
+var result1 = func.Invoke(null);//0
+var result1 = func.Invoke(2);//2
+```
+
+?.
+
+```csharp
+
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int?>("value1");
+var func = expressionCompiler.Compile<Func<int?, string>>("value1?.ToString()");
+var result1 = func.Invoke(null);//null
+var result1 = func.Invoke(2);//"2"
+
+```
+?[]
+```csharp
+
+ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+expressionCompiler.SetParameter<int[]>("value1");
+
+var func = expressionCompiler.Compile<Func<int[], int?>>("value1?[0]");//value[0,0] 多维数组/矩形
+var result1 = func.Invoke(null);//null
+var result1 = func.Invoke(new int[] { 10086, 110 });//10086
+
+```
+
+
 # 表达式合并
 
 ## 调用例子
@@ -270,17 +308,71 @@ bool result1 = func(2, 2);//true
 bool result2 = func(1, 3);//flase
 ```
 
+## 支持列表
+
+### 运算符
+ 
+> 算数运算符
+
+一元算数运算符 ++(递增) --(递减) +(正，一般不需要写) -(负)
+
+二元： * / % + -
+
+> 逻辑运算符
+
+一元：！
+
+二元：&& ||
+
+> 位运算符
+
+二元：  & | ^ << >>  ~按位求补
+
+> 比较运算符
+
+== ！= < > <= >= 
+
+> 成员访问运算符
+
+. (访问属性、字段、方法)
+
+[] 索引器运算符
+
+>赋值运算符
+
+= 
+
+> 复合赋值 
+
++= -= *= /= %= ^= &= |= ??=
+
+>?? 
+
+> 三元条件运算符 
+
+? :
+
+### 代码块
+
+>代码块
+
+{.....;return x;}
+
+>定义变量
+
+{int i=0;return i}
 
 
 ## 计划列表
 
-* && || & | ^ ! >> <<操作符操作(已支持)
 
-* 变量定义 这个也会涉及到程序集的加载(已支持)
+* 成员访问运算符 Null 条件运算符 ?. 和 ?[]   范围运算符..
 
-* this[] 索引，数组、字符串、自定义类等的索引操作都可(已支持)
+    **lambda表达式中不能有?. 和?[]操作**:
+    表达式树lambda不能包含空传播运算符
 
-* 完善preType
+* 类型测试运算符 is as等
+
 
 * 浮点数写法 12d,12m,12f
 

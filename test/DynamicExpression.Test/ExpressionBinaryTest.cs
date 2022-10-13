@@ -170,6 +170,31 @@ namespace DynamicExpression.Test
             Assert.AreEqual(result, assert);
         }
 
+        [TestCase(14, 2, true)]
+        [TestCase(14, 14, false)]
+        [TestCase("123", "3456", true)]
+        [TestCase("test", "test", false)]
+        public void Binary_NotEqualsExpression(object value1, object value2, object result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter(value1.GetType(), "value1");
+            expressionCompiler.SetParameter(value2.GetType(), "value2");
+            var func = expressionCompiler.Compile("value1!=value2");
+            var assert = func.DynamicInvoke(value1, value2);
+            Assert.AreEqual(result, assert);
+        }
+
+        [TestCase("value1??null", null,null)]
+        [TestCase("value1??0", null,0)]
+        public void Binary_CoalesceExpression(string expression, int? value,int?result)
+        {
+            ExpressionCompiler expressionCompiler = new ExpressionCompiler();
+            expressionCompiler.SetParameter<int?>("value1");
+            var func = expressionCompiler.Compile<Func<int?,int?>>(expression);
+            var assert = func.Invoke(value);
+            Assert.AreEqual(result, assert);
+        }
+
         /// <summary>
         /// Ð¡ÓÚºÅ²Ù×÷
         /// </summary>

@@ -10,7 +10,18 @@
     <!-- <icon>icon.png</icon> -->
     <projectUrl>https://github.com/fuhaih/DynamicExpression</projectUrl>
     <description>动态表达式,可以执行表达式字符串，可以合并表达式内容</description>
-    <releaseNotes>发行说明，可以是修改了哪些问题</releaseNotes>
+    <releaseNotes>
+		<![CDATA[
+		更新：
+		* 索引器调用
+        * 一元算数运算符 ++(递增) --(递减) +(正，一般不需要写) -(负)
+        * 比较运算符!=
+        * 位运算符 ~按位求补
+        * ?? ?. ?[]操作符
+        * 三元条件运算符 ? :
+        * 复合赋值 += -= *= /= %= ^= &= |= ??=
+		]]>
+	</releaseNotes>
     <copyright>$copyright$</copyright>
     <tags>DynamicExpression Expression Lampda Dynamic eval linq</tags>
     <dependencies>
