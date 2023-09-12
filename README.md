@@ -1,38 +1,38 @@
 # DynamicExpression
-动态表达式，dotnet版本eval
+DynamicExpression，Eval
 
-目前还未成熟，正式项目中慎用。
+You can search `DynamicExpression.Core` on nuget
 
-悄咪咪的告诉你，`DataTable`中也有计算表达式的功能
+
+DynamicExpression using `Roslyn` to parse strings into grammar trees,
+which are then converted into expressions
+
+By the way, i also find the similar features in `DataTable`
 
 ```csharp
 var value = new DataTable().Compute("1+2",null);//3
 ```
+ 
 
-回到我的动态表达式，是使用Roslyn解析表达式字符串，构建为表达式
-
-## 依赖
-
-是用的dotnet的Roslyn编译器，需要引用以下包
-
+## Reference
 ```
 Microsoft.CodeAnalysis.CSharp
 ```
 
-## 注意
+## Pay attention 
 
-这些例子里有关于类型的操作(创建对象、定义变量、静态方法调用)，都只有预设类型(int,string,double......)能用，其他类型需要在类型名称不重复的情况下，使用`SetPredefinedType`手动配置类型和名称，才能使用
+In these examples, there are operations related to types (creating objects, defining variables, static method calls) that can only be used with preset types (int, string, double...). Other types need to be manually configured with `SetPredefinedType` without duplicate type names in order to be used
 
-## 调用例子
+## Examples
 
 
->加减乘除
+>Arithmetic Operator
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 var func = expressionCompiler.Compile("1+2");
 var result = func.DynamicInvoke();
 ```
->比较
+>Compare
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -40,7 +40,7 @@ var func = expressionCompiler.Compile("1<2");
 var result = func.DynamicInvoke();
 ```
 
->带参
+>Parameter
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -49,9 +49,9 @@ var func = expressionCompiler.Compile("value+2");
 var result = func.DynamicInvoke(3);
 ```
 
->方法调用
+>Method Call
 
-实例方法
+instance method call
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<int>("value1");
@@ -61,7 +61,7 @@ var result = func.DynamicInvoke(12345,"67890");
 //34890
 ```
 
-静态方法
+static methord call
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -72,7 +72,7 @@ var result = func.DynamicInvoke("12345","67890");
 //1234567890
 ```
 
->代码块
+>Block
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -81,7 +81,7 @@ var func = expressionCompiler.Compile("{value = value + 2;return value;}");
 var result = func.DynamicInvoke(3);
 ```
 
->代码块内变量定义
+>Defining Variables
 
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
@@ -99,7 +99,7 @@ var result = func.DynamicInvoke(3);
 //输出6
 ```
 
->其他逻辑运行
+>Logical Operation
 
 &&
 ```csharp
@@ -130,7 +130,7 @@ var result = func.DynamicInvoke(3,4);
 //true
 ```
 
->位运行
+>Bitwise Operation
 
 ^ 
 ```csharp
@@ -181,9 +181,9 @@ var result = func.DynamicInvoke(16);
 //64
 ```
 
->索引操作this[]
+>Indexer this[]
 
-数组：
+array：
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<int[]>("values");
@@ -192,7 +192,7 @@ var result = func.DynamicInvoke(new int[] { 1,2,3});
 //result: 1
 ```
 
-字符串
+string:
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<string>("values");
@@ -201,7 +201,7 @@ var result = func.DynamicInvoke("123");
 //result: '1'
 ```
 
-自定义类型
+class:
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<Test>("values");
@@ -210,8 +210,8 @@ var result = func.DynamicInvoke(new Test());
 //result: null
 ```
 
-多维数组
 
+Jagged arrays:
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<int[][]>("values");
@@ -224,14 +224,14 @@ var result = func.Invoke(value);
 //result: { 5, 6, 7 }
 ```
 
-多维数组作为入参时，需要编译为特定类型的表达式，使用Invoke方法而非DynamicInvoke。
+When a jagged arrays is used as an input parameter, it needs to be compiled into a specific type of expression, using the `Invoke` method instead of `DynamicInvoke`.
 
 
->可空类型处理
+>Nullable Types
 
-可空类型也是需要调用Invoke方法
+Nullable types also require calling the Invoke method
 
-`??`运算符
+`??`
 ```csharp
 ExpressionCompiler expressionCompiler = new ExpressionCompiler();
 expressionCompiler.SetParameter<int?>("value1");
@@ -264,11 +264,11 @@ var result1 = func.Invoke(new int[] { 10086, 110 });//10086
 ```
 
 
-# 表达式合并
+# Expression Merge
 
-## 调用例子
+## Example
 
->ef中操作
+>use in EFCore
 
 ```csharp
 string connectString = "Data Source=.;Initial Catalog=RportTest;Integrated Security=True";
@@ -294,9 +294,8 @@ using (TestContext ctx = new TestContext(optionsBuilder.Options))
 }
 ```
 
->多个参数表达式
+>multi parameter expression
 
-多个表达式中的参数名不一致也没关系，最终会用第一个表达式的参数来代替。
 
 ```csharp
 Expression<Func<int,int, bool>> epxr1 = (value1,value2)=>value1+value2==4;
@@ -308,62 +307,62 @@ bool result1 = func(2, 2);//true
 bool result2 = func(1, 3);//flase
 ```
 
-## 支持列表
+## Support Operator
 
-### 运算符
- 
-> 算数运算符
+### Operator
 
-一元算数运算符 ++(递增) --(递减) +(正，一般不需要写) -(负)
+> Arithmetic operator
 
-二元： * / % + -
+Unary operator: ++ -- + -
 
-> 逻辑运算符
+binary operation： * / % + -
 
-一元：！
+> logical operation
 
-二元：&& ||
+Unary operator：！
 
-> 位运算符
+binary operation：&& ||
 
-二元：  & | ^ << >>  ~按位求补
+> Bitwise operation
 
-> 比较运算符
+binary operation：  & | ^ << >>  ~按位求补
+
+>Comparative operation
 
 == ！= < > <= >= 
 
-> 成员访问运算符
+> member access
 
-. (访问属性、字段、方法)
+. (Properties, Fields, Methods)
 
-[] 索引器运算符
+[] (Indexer)
 
->赋值运算符
+>Assignment Operators
 
 = 
 
-> 复合赋值 
+> Compound Assignment
 
 += -= *= /= %= ^= &= |= ??=
 
 >?? 
 
-> 三元条件运算符 
+> ternary 
 
 ? :
 
-### 代码块
+### Block
 
->代码块
+>block
 
 {.....;return x;}
 
->定义变量
+>define parameter
 
 {int i=0;return i}
 
 
-## 计划列表
+## Todo List
 
 
 * 成员访问运算符 Null 条件运算符 ?. 和 ?[]   范围运算符..
@@ -383,33 +382,3 @@ bool result2 = func(1, 3);//flase
 * 类型强制转换(延后，类型相关需要处理程序集)
 
 
-## 一些不成熟的小想法
-
-* json转换为Expression用作EF的查询表达式
-
-这种只能用在单表操作，不太好用在多表操作，并且这样会给前端太高的可操作性，数据安全性比较低。
-
-* Expression合并
-
-Where查询的时候，可以通过不同的条件来添加Where筛选
-
-```csharp
-if(!string.IsNullOfEmpty(name))
-{
-    query.Where(m=>m.Name == name);
-}
-......
-```
-多次判断的时候，多次调用Where，相当于多个条件的&&操作。有时候会需要||操作，就不太好弄
-
-这里想重新构造多个Expression，合并生成一个新的Expression来操作
-
-## 一些帮助摸鱼的小想法
-
-* 自动部署程序
-
-某个项目中有很多的第三方dll，每次使用vs远程发布的时候，都需要传输大量文件，比较耗时
-
-想法：在iis服务端进行应用的编译，发布，这个就涉及到从代码库中拉取代码->iis服务器编译->发布
-
-[相关资料](https://www.ecanarys.com/Blogs/ArticleID/409/Deploy-NET-application-on-IIS-using-GitHub-actions)
